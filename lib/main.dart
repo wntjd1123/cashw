@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cash/page/cashdeal/cashdeal.dart';
+import 'package:cash/page/community/community.dart';
 
 // 앱 시작 지점
 void main() {
@@ -77,7 +78,12 @@ class HomePage extends StatelessWidget {
                   _buildCategoryButton('돈버는미션', Icons.task, () {}),
                   _buildCategoryButton('캐시리뷰', Icons.rate_review, () {}),
                   _buildCategoryButton('과민보스', Icons.emoji_emotions, () {}),
-                  _buildCategoryButton('커뮤니티', Icons.forum, () {}),
+                  _buildCategoryButton('커뮤니티', Icons.forum, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => CommunityPage()),
+                    );
+                  }),
                   _buildCategoryButton('캐시웨어', Icons.inventory, () {}),
                 ],
               ),
