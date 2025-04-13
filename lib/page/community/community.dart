@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cash/page/community/WritePostPage.dart';
+import 'package:cash/page/community/writepost.dart';
 
 class CommunityPage extends StatefulWidget {
   @override

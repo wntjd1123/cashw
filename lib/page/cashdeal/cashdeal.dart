@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cash/main.dart'; // HomePage 위치에 맞게 경로 조정 필요
-
+import 'package:cash/screen/home_screen.dart';
 // CASHDEAL 메인 페이지
 class CashDealPage extends StatelessWidget {
   const CashDealPage({super.key});
