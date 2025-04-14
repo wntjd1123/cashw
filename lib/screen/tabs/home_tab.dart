@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cash/page/cashdeal/cashdeal.dart';
 import 'package:cash/page/community/community.dart';
 import 'package:cash/page/neighborhoodwalk/neighborhoodwalk.dart';
+import 'package:cash/page/runningcrew/runningcrew.dart';
 class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,9 @@ class HomeTab extends StatelessWidget {
                 }),
                 _buildCategoryButton('트로스트', Icons.psychology, () {}),
                 _buildCategoryButton('모두의챌린지', Icons.emoji_events, () {}),
-                _buildCategoryButton('러닝크루', Icons.directions_run, () {}),
+                _buildCategoryButton('러닝크루', Icons.directions_run, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => RunningCrewPage()));
+                }),
                 _buildCategoryButton('캐시닥', Icons.health_and_safety, () {}),
                 _buildCategoryButton('팀워크', Icons.groups, () {}),
                 _buildCategoryButton('뽑기', Icons.casino, () {}),
