@@ -14,11 +14,11 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
 
   final List<Widget> _tabs = [
-    HomeTab(),        // 홈
-    Container(),      // 캐시톡은 비워둠 (탭 이동이 아니니까)
-    BenefitTab(),     // 혜택
-    CouponTab(),      // 교환권
-    SettingsTab(),    // 설정
+    HomeTab(),
+    Container(),
+    BenefitTab(),
+    CouponTab(),
+    SettingsTab(),
   ];
 
   @override
@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
           }
         },
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.yellow[700],
+        backgroundColor: Colors.white,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black54,
         showUnselectedLabels: true,

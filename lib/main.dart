@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
-import 'package:flutter_naver_map/flutter_naver_map.dart'; // << 추가
+import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:cash/screen/login_screen.dart';
 import 'package:cash/screen/home_screen.dart';
 import 'package:cash/utils/jwt_storage.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  WidgetsFlutterBinding.ensureInitialized();  // ★ 꼭 필요
   KakaoSdk.init(nativeAppKey: 'c651375070bb8a02f40ab9b246630fa7');
 
-  // ★★ Naver 지도 초기화. 꼭 await 걸어야 함
-  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', null);
+
   await NaverMapSdk.instance.initialize(
     clientId: "kdbzid2etj",
   );
@@ -34,6 +36,15 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: initialScreen,
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+      ],
     );
   }
 }
