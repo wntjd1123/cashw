@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'daily_walking_detail_page.dart';
 
 class PlanTab extends StatefulWidget {
   const PlanTab({super.key});
@@ -8,72 +9,32 @@ class PlanTab extends StatefulWidget {
 }
 
 class _PlanTabState extends State<PlanTab> {
-  String selectedCategory = '전체 러닝';
+  Map<String, bool> expandedStates = {}; // 각 카드 확장 상태 관리
 
   final List<Map<String, dynamic>> runningList = [
     {
       'title': '매일 걷기 습관',
-      'description': '하루하루 꾸준히 걷기로 체력을 늘려봐요!',
-      'tags': ['#걷기'],
+      'description': '하루하루 꾸준히 걷기로 건강한 습관을 형성해요',
+      'tags': ['#걷기', '#건강습관'],
       'imagePath': 'assets/images/tree.png',
       'category': '단계 러닝',
     },
-    {
-      'title': '러닝 실력 향상',
-      'description': '하루하루 달리면서 건강한 하루를 마무리해요!',
-      'tags': ['#러닝'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '단계 러닝',
-    },
-    {
-      'title': '다이어트 러닝',
-      'description': '러닝하면서 다이어트 정보를!',
-      'tags': ['#식이요법', '#다이어트'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '목적 러닝',
-    },
-    {
-      'title': '체력증진 러닝',
-      'description': '러닝하면서 체력을 늘릴 수 있도록!',
-      'tags': ['#근력', '#지구력'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '목적 러닝',
-    },
-    {
-      'title': '스트레스 해소 러닝',
-      'description': '스트레스를 날리는 힐링 러닝!',
-      'tags': ['#힐링', '#응원'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '목적 러닝',
-    },
-    {
-      'title': '아침 러닝',
-      'description': '공복 유산소로 하루 시작!',
-      'tags': ['#공복 러닝'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '시간 러닝',
-    },
-    {
-      'title': '오후 러닝',
-      'description': '오후의 나른함을 러닝으로!',
-      'tags': ['#점심 러닝'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '시간 러닝',
-    },
-    {
-      'title': '야간 러닝',
-      'description': '하루를 상쾌하게 마무리!',
-      'tags': ['#저녁', '#심야 러닝'],
-      'imagePath': 'assets/images/tree.png',
-      'category': '시간 러닝',
-    },
+    // 다른 러닝 항목 추가 가능
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    for (var item in runningList) {
+      expandedStates[item['title']] = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 🔥 배너
+        // 상단 배너
         Container(
           margin: const EdgeInsets.all(16),
           height: 150,
@@ -90,170 +51,135 @@ class _PlanTabState extends State<PlanTab> {
             alignment: Alignment.bottomLeft,
             child: const Text(
               '새로워진 러닝크루와 함께\n러닝도 하고 캐시도 받아볼까요?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
-
-        // 🔥 카테고리 버튼
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildCategoryButton('전체 러닝'),
-                const SizedBox(width: 8),
-                _buildCategoryButton('단계 러닝'),
-                const SizedBox(width: 8),
-                _buildCategoryButton('목적 러닝'),
-                const SizedBox(width: 8),
-                _buildCategoryButton('시간 러닝'),
-              ],
-            ),
-          ),
-        ),
-
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '나에게 맞는 러닝 가이드를 받아보세요!',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-
-
         const SizedBox(height: 16),
 
-        // 🔥 러닝 리스트
+        // 러닝 리스트
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: _filteredRunningList()
-                .map((item) => _buildRunningCard(item))
-                .toList(),
+            children: runningList.map((item) => _buildRunningCard(item)).toList(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCategoryButton(String title) {
-    final isSelected = selectedCategory == title;
-    return ElevatedButton(
-      onPressed: () {
-        setState(() {
-          selectedCategory = title;
-        });
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.black : Colors.grey[300],
-        foregroundColor: isSelected ? Colors.white : Colors.black,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      child: Text(title),
-    );
-  }
-
-  List<Map<String, dynamic>> _filteredRunningList() {
-    if (selectedCategory == '전체 러닝') {
-      return runningList;
-    } else {
-      return runningList
-          .where((item) => item['category'] == selectedCategory)
-          .toList();
-    }
-  }
-
   Widget _buildRunningCard(Map<String, dynamic> item) {
+    final bool isExpanded = expandedStates[item['title']] ?? false;
+    final bool isDailyWalking = item['title'] == '매일 걷기 습관';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2))],
       ),
-      child: Row(
+      child: Column(
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              bottomLeft: Radius.circular(12),
-            ),
-            child: Image.asset(
-              item['imagePath'],
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['title'],
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              // 카드 본문 (탭 시 상세페이지 이동)
+              Expanded(
+                child: ListTile(
+                  onTap: () {
+                    if (isDailyWalking) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DailyWalkingDetailPage(), // 기본모드 없음
+                        ),
+                      );
+                    }
+                  },
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      item['imagePath'],
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item['description'],
-                    style: const TextStyle(
-                        fontSize: 13, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 4,
-                    children: (item['tags'] as List<String>)
-                        .map((tag) => Text(
-                      tag,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.deepOrange,
+                  title: Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(item['description']),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        children: (item['tags'] as List<String>)
+                            .map((tag) => Text(tag, style: const TextStyle(fontSize: 12, color: Colors.deepOrange)))
+                            .toList(),
                       ),
-                    ))
-                        .toList(),
+                    ],
                   ),
+                ),
+              ),
+              // 화살표 버튼
+              IconButton(
+                icon: Icon(
+                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  size: 30,
+                ),
+                onPressed: () {
+                  setState(() {
+                    expandedStates[item['title']] = !isExpanded;
+                  });
+                },
+              ),
+            ],
+          ),
+          if (isExpanded && isDailyWalking) ...[
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildWalkingButton('느리게 걷기', '30분', 0),
+                  _buildWalkingButton('빠르게 걷기', '30분', 1),
                 ],
               ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(6),
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              '30분',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          )
+          ],
         ],
+      ),
+    );
+  }
+
+  // 버튼 위젯 (느리게, 빠르게 걷기)
+  Widget _buildWalkingButton(String title, String time, int mode) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DailyWalkingDetailPage(initialMode: mode), // 모드 넘김
+          ),
+        );
+      },
+      child: Container(
+        width: 120,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.directions_walk, color: Colors.deepOrange),
+            const SizedBox(height: 4),
+            Text('$title\n$time', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
       ),
     );
   }

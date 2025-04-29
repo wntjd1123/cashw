@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'all_tab.dart';
 import 'popular_tab.dart';
 import 'notice_tab.dart';
+import 'post_model.dart';
 
 class FavoriteTab extends StatelessWidget {
   final List<String> favoriteTabs;
   final Function(String)? onSeeMore;
+  final Function(Post)? onPostTap; // 필드 추가
 
   const FavoriteTab({
     super.key,
     required this.favoriteTabs,
     this.onSeeMore,
+    this.onPostTap,
   });
 
-  // 📌 탭 이름 → 라벨 변환
   String resolveLabel(String tab) {
     switch (tab) {
       case '전체':
@@ -27,15 +29,14 @@ class FavoriteTab extends StatelessWidget {
     }
   }
 
-  // 📌 탭 이름 → 요약용 게시글 리스트 위젯 (미리보기용)
   Widget buildPreviewContent(String tab) {
     switch (tab) {
       case '전체':
-        return const AllTab(isPreview: true);
+        return AllTab(isPreview: true, onPostTap: onPostTap);
       case '인기글':
-        return const PopularTab(isPreview: true);
+        return PopularTab(isPreview: true, onPostTap: onPostTap);
       case '공지':
-        return const NoticeTab(isPreview: true);
+        return NoticeTab(isPreview: true, onPostTap: onPostTap);
       default:
         return const Center(child: Text('지원되지 않는 게시판입니다.'));
     }
@@ -56,7 +57,6 @@ class FavoriteTab extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🟨 섹션 제목 + 더보기
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Row(
@@ -80,7 +80,7 @@ class FavoriteTab extends StatelessWidget {
                 ],
               ),
             ),
-            buildPreviewContent(tabKey), // 게시글 미리보기 리스트
+            buildPreviewContent(tabKey),
             const Divider(height: 24),
           ],
         );

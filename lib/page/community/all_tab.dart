@@ -3,25 +3,25 @@ import 'post_model.dart';
 import 'post_repository.dart';
 import 'post_card.dart';
 
-// 예시: all_tab.dart
-
 class AllTab extends StatelessWidget {
   final bool isPreview;
-  const AllTab({super.key, this.isPreview = false});
+  final Function(Post)? onPostTap;
+  const AllTab({super.key, this.isPreview = false, this.onPostTap});
 
   @override
   Widget build(BuildContext context) {
     final posts = PostRepository.allPosts;
     final previewPosts = isPreview ? posts.take(3).toList() : posts;
 
-    return ListView.builder(
-      physics: isPreview ? const NeverScrollableScrollPhysics() : null,
-      shrinkWrap: isPreview,
-      itemCount: previewPosts.length,
-      itemBuilder: (context, index) {
-        final post = previewPosts[index];
-        return PostCard(post: post);
-      },
+    return Column(
+      children: previewPosts.map((post) {
+        return GestureDetector(
+          onTap: () {
+            if (onPostTap != null) onPostTap!(post);
+          },
+          child: PostCard(post: post),
+        );
+      }).toList(),
     );
   }
 }
