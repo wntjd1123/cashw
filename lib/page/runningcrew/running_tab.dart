@@ -1,73 +1,99 @@
 import 'package:flutter/material.dart';
-import 'goal_setting_page.dart'; // ✅ 목표 설정 모달
-import 'free_running.dart';     // ✅ 자유러닝 import 추가
+
+import 'goal_setting_page.dart';
+import 'free_running.dart';
+
+import 'running_session_manager.dart';
 
 class RunningTab extends StatefulWidget {
   const RunningTab({super.key});
-
   @override
   State<RunningTab> createState() => _RunningTabState();
 }
 
 class _RunningTabState extends State<RunningTab> {
-  bool isUnlimitedMode = true; // 무제한 러닝 or 목표 러닝
-  bool isDistanceMode = true;  // 거리 모드 or 시간 모드
-
-  double distanceGoal = 0.0;   // 목표 거리
-  Duration timeGoal = Duration.zero; // 목표 시간
+  bool isUnlimited = true;
+  bool isDistance = true;
+  double distanceGoal = 0.0;
+  Duration timeGoal = Duration.zero;
 
   @override
   Widget build(BuildContext context) {
+    final banner = RunningSessionManager.I.hasActive
+        ? Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: GestureDetector(
+        onTap: () => RunningSessionManager.I.bringToFront(context),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+              color: Colors.deepOrange,
+              borderRadius: BorderRadius.circular(30)),
+          alignment: Alignment.center,
+          child: const Text('현재 진행중인 러닝으로 이동하기 ›',
+              style: TextStyle(color: Colors.white)),
+        ),
+      ),
+    )
+        : const SizedBox.shrink();
+
     return Column(
       children: [
+        banner,
         const SizedBox(height: 16),
-
-        // 무제한 러닝 / 목표 러닝 버튼
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildTopModeButton('무제한 러닝', true),
+            _topBtn('무제한 러닝', true),
             const SizedBox(width: 8),
-            _buildTopModeButton('목표 러닝', false),
+            _topBtn('목표 러닝', false),
           ],
         ),
-
         const SizedBox(height: 20),
-
-        // 거리 / 시간 버튼
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildModeButton('거리', true),
+            _modeBtn('거리', true),
             const SizedBox(width: 12),
-            _buildModeButton('시간', false),
+            _modeBtn('시간', false),
           ],
         ),
-
         const SizedBox(height: 32),
-
-        // 메인 화면
-        if (isUnlimitedMode)
-          _buildUnlimitedRunning()
-        else
-          _buildGoalRunning(),
-
+        isUnlimited ? _unlimited() : _goal(),
         const Spacer(),
-
-        // 운동 시작 버튼
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                if (RunningSessionManager.I.hasActive) {
+                  final stop = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      content: const Text(
+                          '현재 진행중인 러닝기록이 있습니다.\n러닝을 그만할까요?'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(_, false),
+                            child: const Text('아니오')),
+                        TextButton(
+                            onPressed: () => Navigator.pop(_, true),
+                            child: const Text('네')),
+                      ],
+                    ),
+                  ) ??
+                      false;
+                  if (!stop) return;
+                  await RunningSessionManager.I.stopRunning();
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FreeRunning(
-                      isUnlimited: isUnlimitedMode,
-                      isDistanceMode: isDistanceMode,
+                    builder: (_) => FreeRunning(
+                      isUnlimited: isUnlimited,
+                      isDistanceMode: isDistance,
                       distanceGoal: distanceGoal,
                       timeGoal: timeGoal,
                     ),
@@ -75,15 +101,11 @@ class _RunningTabState extends State<RunningTab> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepOrange,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                '운동 시작',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
+                  backgroundColor: Colors.deepOrange,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12))),
+              child: const Text('운동 시작',
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ),
         ),
@@ -91,153 +113,115 @@ class _RunningTabState extends State<RunningTab> {
     );
   }
 
-  // 무제한 러닝 화면
-  Widget _buildUnlimitedRunning() {
-    return Column(
-      children: [
-        Text(
-          isDistanceMode ? '무제한 거리 러닝' : '무제한 시간 러닝',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          '별도의 목표 없이 자유롭게 달려볼까요?\n내가 달린만큼 러닝기록이 저장돼요!',
+  /* ───── 위젯 빌더 ───── */
+  Widget _unlimited() => Column(
+    children: [
+      Text(isDistance ? '무제한 거리 러닝' : '무제한 시간 러닝',
+          style:
+          const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 8),
+      const Text('별도의 목표 없이 자유롭게 달려볼까요?\n내가 달린만큼 러닝기록이 저장돼요!',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        const SizedBox(height: 40),
-        Icon(
-          isDistanceMode ? Icons.directions_run : Icons.timer,
-          size: 120,
-          color: Colors.deepOrange,
-        ),
-      ],
-    );
-  }
+          style: TextStyle(fontSize: 14, color: Colors.grey)),
+      const SizedBox(height: 40),
+      Icon(isDistance ? Icons.directions_run : Icons.timer,
+          size: 120, color: Colors.deepOrange),
+    ],
+  );
 
-  // 목표 러닝 화면
-  Widget _buildGoalRunning() {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () async {
-            final result = await Navigator.push(
+  Widget _goal() => Column(
+    children: [
+      GestureDetector(
+        onTap: () async {
+          final r = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => GoalSettingPage(
-                  isDistanceMode: isDistanceMode,
-                  initialDistance: distanceGoal,
-                  initialDuration: timeGoal,
-                ),
-              ),
-            );
-
-            if (result != null) {
-              if (isDistanceMode) {
-                setState(() {
-                  distanceGoal = result as double;
-                });
+                  builder: (_) => GoalSettingPage(
+                      isDistanceMode: isDistance,
+                      initialDistance: distanceGoal,
+                      initialDuration: timeGoal)));
+          if (r != null) {
+            setState(() {
+              if (isDistance) {
+                distanceGoal = r as double;
               } else {
-                setState(() {
-                  timeGoal = result as Duration;
-                });
+                timeGoal = r as Duration;
               }
-            }
-          },
-          child: Column(
-            children: [
-              Text(
-                isDistanceMode
+            });
+          }
+        },
+        child: Column(
+          children: [
+            Text(
+                isDistance
                     ? distanceGoal.toStringAsFixed(1)
-                    : _formatDuration(timeGoal),
-                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Divider(
+                    : _fmt(timeGoal),
+                style: const TextStyle(
+                    fontSize: 48, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Divider(
                 color: Colors.deepOrange,
                 thickness: 3,
                 indent: 80,
-                endIndent: 80,
-              ),
-              Text(
-                isDistanceMode ? 'km' : '시:분:초',
-                style: const TextStyle(fontSize: 14, color: Colors.black54),
-              ),
-            ],
-          ),
+                endIndent: 80),
+            Text(isDistance ? 'km' : '시:분:초',
+                style: const TextStyle(
+                    fontSize: 14, color: Colors.black54)),
+          ],
         ),
-        const SizedBox(height: 16),
-        const Text(
-          '숫자 영역을 터치해서 러닝 목표를\n자유롭게 설정해보세요.',
+      ),
+      const SizedBox(height: 16),
+      const Text('숫자 영역을 터치해서 러닝 목표를\n자유롭게 설정해보세요.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-      ],
-    );
-  }
+          style: TextStyle(fontSize: 14, color: Colors.grey)),
+    ],
+  );
 
-  String _formatDuration(Duration d) {
-    final hours = d.inHours.toString().padLeft(2, '0');
-    final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$seconds';
-  }
+  /* ───── 헬퍼 ───── */
+  String _fmt(Duration d) =>
+      '${d.inHours.toString().padLeft(2, '0')}:${(d.inMinutes % 60).toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
-  Widget _buildTopModeButton(String text, bool unlimitedMode) {
-    final bool isSelected = isUnlimitedMode == unlimitedMode;
+  Widget _topBtn(String t, bool u) {
+    final sel = isUnlimited == u;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          isUnlimitedMode = unlimitedMode;
-        });
-      },
+      onTap: () => setState(() => isUnlimited = u),
       child: Container(
         constraints: const BoxConstraints(minWidth: 90, minHeight: 36),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.grey[300],
+          color: sel ? Colors.black : Colors.grey[300],
           borderRadius: BorderRadius.circular(18),
         ),
         alignment: Alignment.center,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : Colors.black,
-          ),
-        ),
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: sel ? Colors.white : Colors.black)),
       ),
     );
   }
 
-  Widget _buildModeButton(String text, bool distanceMode) {
-    final bool isSelected = isDistanceMode == distanceMode;
+  Widget _modeBtn(String t, bool d) {
+    final sel = isDistance == d;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          isDistanceMode = distanceMode;
-        });
-      },
+      onTap: () => setState(() => isDistance = d),
       child: Container(
         width: 100,
         height: 40,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.grey[300],
+          color: sel ? Colors.white : Colors.grey[300],
           borderRadius: BorderRadius.circular(20),
-          border: isSelected
+          border: sel
               ? Border.all(color: Colors.deepOrange, width: 2)
               : Border.all(color: Colors.transparent),
         ),
         alignment: Alignment.center,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.deepOrange : Colors.black54,
-          ),
-        ),
+        child: Text(t,
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: sel ? Colors.deepOrange : Colors.black54)),
       ),
     );
   }
