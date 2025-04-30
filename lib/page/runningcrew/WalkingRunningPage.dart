@@ -136,8 +136,8 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
               isUnlimited: true,
               isDistanceMode: false,
             )));
-    await RunningSessionManager.I.stopRunning();
-    Navigator.pop(context);
+
+
   }
 
   void _show(String m) =>

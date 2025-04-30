@@ -137,8 +137,8 @@ class _FreeRunningState extends State<FreeRunning> {
               isUnlimited: widget.isUnlimited,
               isDistanceMode: widget.isDistanceMode,
             )));
-    await RunningSessionManager.I.stopRunning();
-    Navigator.pop(context);
+
+
   }
 
   double _pace() =>
