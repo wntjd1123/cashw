@@ -12,11 +12,13 @@ class WalkingRunningPage extends StatefulWidget {
   final String modeTitle;
   final List<RunSegment> segments;
   final bool voiceGuideOn;
-  const WalkingRunningPage(
-      {super.key,
-        required this.modeTitle,
-        required this.segments,
-        this.voiceGuideOn = false});
+  const WalkingRunningPage({
+    super.key,
+    required this.modeTitle,
+    required this.segments,
+    this.voiceGuideOn = false,
+  });
+
   @override
   State<WalkingRunningPage> createState() => _WalkingRunningPageState();
 }
@@ -37,6 +39,15 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
   NaverMapController? _ctl;
   DateTime? _start;
 
+  /*----------------- 추가: RunningCrewPage 로 이동 -----------------*/
+  void _minimize() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RunningCrewPage()),
+    );
+  }
+  /*----------------------------------------------------------------*/
+
   @override
   void initState() {
     super.initState();
@@ -48,9 +59,9 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
     _startGPS();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       RunningSessionManager.I.register(
-        ModalRoute.of(context)!,                       // ① Route
-            () async => _finishRunning(),                  // ② onFinish
-            (_) => this.widget,                            // ③ builder
+        ModalRoute.of(context)!,
+            () async => _finishRunning(),
+            (_) => widget,
       );
     });
   }
@@ -96,11 +107,18 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
         if (_path.isNotEmpty) distance += _hav(_path.last, cur);
         _path.add(cur);
         _ctl?.updateCamera(
-            NCameraUpdate.withParams(target: cur, zoom: 16));
+          NCameraUpdate.withParams(target: cur, zoom: 16),
+        );
         if (_ctl != null && _path.length >= 2) {
           _ctl!.clearOverlays();
           _ctl!.addOverlay(
-              NPolylineOverlay(id: 'route', coords: _path, color: Colors.red, width: 4));
+            NPolylineOverlay(
+              id: 'route',
+              coords: _path,
+              color: Colors.red,
+              width: 4,
+            ),
+          );
         }
       });
     });
@@ -119,29 +137,33 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
   }
 
   Future<void> _finishRunning() async {
+    /*--- 추가: dispose된 후 오류 방지 ---*/
+    if (!mounted) return;
     _timer?.cancel();
     _locSub.cancel();
+
     final end = DateTime.now();
     Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (_) => SummaryPage(
-              distance: distance,
-              duration: elapsed,
-              calories: distance * 60,
-              pace: _pace(),
-              path: _path,
-              startTime: _start ?? end.subtract(elapsed),
-              endTime: end,
-              isUnlimited: true,
-              isDistanceMode: false,
-            )));
-
-
+      context,
+      MaterialPageRoute(
+        builder: (_) => SummaryPage(
+          distance: distance,
+          duration: elapsed,
+          calories: distance * 60,
+          pace: _pace(),
+          path: _path,
+          startTime: _start ?? end.subtract(elapsed),
+          endTime: end,
+          isUnlimited: true,
+          isDistanceMode: false,
+        ),
+      ),
+    );
   }
 
-  void _show(String m) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 1)));
+  void _show(String m) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(m), duration: const Duration(seconds: 1)),
+  );
 
   void _lockTap() {
     if (!isLocked) {
@@ -167,22 +189,31 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
   double _pace() =>
       (elapsed.inSeconds == 0 || distance == 0) ? 0 : (elapsed.inSeconds / 60) / distance;
 
-  Widget _stat(String v, String l) =>
-      Column(children: [Text(v, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(l, style: const TextStyle(fontSize: 12))]);
+  Widget _stat(String v, String l) => Column(
+    children: [
+      Text(v, style: const TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 4),
+      Text(l, style: const TextStyle(fontSize: 12)),
+    ],
+  );
 
+  /*---------------- build ----------------*/
   @override
   Widget build(BuildContext ctx) => WillPopScope(
     onWillPop: () async {
-      if (Navigator.of(ctx).canPop()) return true;
-      Navigator.pushReplacement(
-          ctx, MaterialPageRoute(builder: (_) => const RunningCrewPage()));
-      return false;
+      _minimize(); // 안드로이드 뒤로 키 대응
+      return false; // Route pop 방지
     },
     child: isMap ? _mapScreen() : _mainScreen(),
   );
 
+  /*---------------- main screen ----------------*/
   Widget _mainScreen() => Scaffold(
     appBar: AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: _minimize,
+      ),
       title: Text(widget.modeTitle, style: const TextStyle(color: Colors.black)),
       backgroundColor: Colors.white,
       centerTitle: true,
@@ -193,209 +224,283 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
       child: Column(
         children: [
           const SizedBox(height: 40),
-          Text(_fmt(remain),
-              style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
+          Text(
+            _fmt(remain),
+            style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
-          Text(segs[idx].label,
-              style: const TextStyle(fontSize: 20, color: Colors.grey)),
+          Text(
+            segs[idx].label,
+            style: const TextStyle(fontSize: 20, color: Colors.grey),
+          ),
           const SizedBox(height: 20),
           Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _stat('${distance.toStringAsFixed(1)} km', '총 거리'),
-                _stat('${(distance * 60).toStringAsFixed(0)} kcal', '칼로리'),
-                _stat(_pace().toStringAsFixed(2), '평균 페이스'),
-              ]),
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _stat('${distance.toStringAsFixed(1)} km', '총 거리'),
+              _stat('${(distance * 60).toStringAsFixed(0)} kcal', '칼로리'),
+              _stat(_pace().toStringAsFixed(2), '평균 페이스'),
+            ],
+          ),
           const SizedBox(height: 32),
           Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(16)),
-                  child: Column(children: [
-                    Row(children: [
-                      Text('${segs[idx].label} ${segs[idx].seconds ~/ 60}분',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '${segs[idx].label} ${segs[idx].seconds ~/ 60}분',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const Spacer(),
                       const Text('음성가이드'),
                       Switch(
-                          value: voiceGuide,
-                          activeColor: Colors.deepOrange,
-                          onChanged: (v) => setState(() => voiceGuide = v))
-                    ]),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                        value: done / segs[idx].seconds,
-                        minHeight: 4,
-                        backgroundColor: Colors.grey.shade300,
-                        valueColor: const AlwaysStoppedAnimation(Colors.deepOrange)),
-                    const SizedBox(height: 32),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        value: voiceGuide,
+                        activeColor: Colors.deepOrange,
+                        onChanged: (v) => setState(() => voiceGuide = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: done / segs[idx].seconds,
+                    minHeight: 4,
+                    backgroundColor: Colors.grey.shade300,
+                    valueColor: const AlwaysStoppedAnimation(Colors.deepOrange),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       IconButton(
-                          icon: const Icon(Icons.skip_previous, size: 32),
-                          onPressed: idx == 0
-                              ? null
-                              : () => setState(() {
-                            idx--;
-                            remain = segs[idx].seconds;
-                            done = 0;
-                          })),
+                        icon: const Icon(Icons.skip_previous, size: 32),
+                        onPressed: idx == 0
+                            ? null
+                            : () => setState(() {
+                          idx--;
+                          remain = segs[idx].seconds;
+                          done = 0;
+                        }),
+                      ),
                       const SizedBox(width: 8),
                       GestureDetector(
-                          onTap: () => setState(() => isPaused = !isPaused),
-                          child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: const BoxDecoration(
-                                  shape: BoxShape.circle, color: Colors.deepOrange),
-                              alignment: Alignment.center,
-                              child: Icon(isPaused ? Icons.play_arrow : Icons.pause,
-                                  size: 40, color: Colors.white))),
+                        onTap: () => setState(() => isPaused = !isPaused),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.deepOrange,
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            isPaused ? Icons.play_arrow : Icons.pause,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       IconButton(
-                          icon: const Icon(Icons.skip_next, size: 32),
-                          onPressed: idx >= segs.length - 1
-                              ? null
-                              : () => setState(() {
-                            idx++;
-                            remain = segs[idx].seconds;
-                            done = 0;
-                          }))
-                    ]),
-                    const SizedBox(height: 24),
-                    Text(
-                        idx < segs.length - 1
-                            ? '다음: ${segs[idx + 1].label} ${segs[idx + 1].seconds ~/ 60}분'
-                            : '마지막 구간',
-                        style: TextStyle(color: Colors.grey.shade600))
-                  ]))),
+                        icon: const Icon(Icons.skip_next, size: 32),
+                        onPressed: idx >= segs.length - 1
+                            ? null
+                            : () => setState(() {
+                          idx++;
+                          remain = segs[idx].seconds;
+                          done = 0;
+                        }),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    idx < segs.length - 1
+                        ? '다음: ${segs[idx + 1].label} ${segs[idx + 1].seconds ~/ 60}분'
+                        : '마지막 구간',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const Spacer(),
           Padding(
-              padding: const EdgeInsets.only(bottom: 40),
-              child: ElevatedButton.icon(
-                  onPressed: () => setState(() => isMap = true),
-                  icon: const Icon(Icons.map, color: Colors.white),
-                  label:
-                  const Text('지도 보기', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)))))
+            padding: const EdgeInsets.only(bottom: 40),
+            child: ElevatedButton.icon(
+              onPressed: () => setState(() => isMap = true),
+              icon: const Icon(Icons.map, color: Colors.white),
+              label: const Text('지도 보기', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     ),
     floatingActionButton: GestureDetector(
-        onTap: _lockTap,
-        onLongPress: _unlockLong,
-        child: Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-                shape: BoxShape.circle, color: Colors.deepOrange),
-            alignment: Alignment.center,
-            child: Icon(isLocked ? Icons.lock : Icons.lock_open,
-                size: 32, color: Colors.white))),
+      onTap: _lockTap,
+      onLongPress: _unlockLong,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.deepOrange,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          isLocked ? Icons.lock : Icons.lock_open,
+          size: 32,
+          color: Colors.white,
+        ),
+      ),
+    ),
   );
 
+  /*---------------- map screen ----------------*/
   Widget _mapScreen() => Scaffold(
     body: AbsorbPointer(
       absorbing: isLocked,
-      child: Stack(children: [
-        NaverMap(
-          onMapReady: (c) => _ctl = c,
-          options: const NaverMapViewOptions(
+      child: Stack(
+        children: [
+          NaverMap(
+            onMapReady: (c) => _ctl = c,
+            options: const NaverMapViewOptions(
               locationButtonEnable: true,
-              activeLayerGroups: [NLayerGroup.building]),
-        ),
-        DraggableScrollableSheet(
+              activeLayerGroups: [NLayerGroup.building],
+            ),
+          ),
+          DraggableScrollableSheet(
             initialChildSize: 0.25,
             minChildSize: 0.15,
             maxChildSize: 0.40,
             builder: (_, ctl) => Container(
-                decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(20))),
-                child: SingleChildScrollView(
-                    controller: ctl,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 14),
-                    child: Column(children: [
-                      Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                              color: Colors.grey[400],
-                              borderRadius: BorderRadius.circular(10))),
-                      Text(_fmt(remain),
-                          style: const TextStyle(
-                              fontSize: 36, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 24),
-                      Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _stat('${distance.toStringAsFixed(1)} km', '총 거리'),
-                            _stat('${(distance * 60).toStringAsFixed(0)} kcal',
-                                '칼로리'),
-                            _stat(_pace().toStringAsFixed(2), '평균 페이스')
-                          ])
-                    ])))),
-        Positioned(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SingleChildScrollView(
+                controller: ctl,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    Text(
+                      _fmt(remain),
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _stat('${distance.toStringAsFixed(1)} km', '총 거리'),
+                        _stat('${(distance * 60).toStringAsFixed(0)} kcal', '칼로리'),
+                        _stat(_pace().toStringAsFixed(2), '평균 페이스'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton(
-                          onPressed: () => setState(() => isPaused = !isPaused),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.deepOrange),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12))),
-                          child: Text(isPaused ? '재개' : '일시 정지',
-                              style:
-                              const TextStyle(color: Colors.deepOrange))),
-                      GestureDetector(
-                          onTap: _finishTap,
-                          onLongPress: _finishRunning,
-                          child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14, horizontal: 38),
-                              decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(12)),
-                              child:
-                              const Text('운동 종료', style: TextStyle(color: Colors.black))))
-                    ]))),
-        SafeArea(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => setState(() => isPaused = !isPaused),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.deepOrange),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      isPaused ? '재개' : '일시 정지',
+                      style: const TextStyle(color: Colors.deepOrange),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _finishTap,
+                    onLongPress: _finishRunning,
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 38,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '운동 종료',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
             child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => setState(() => isMap = false)))
-      ]),
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => setState(() => isMap = false),
+            ),
+          ),
+        ],
+      ),
     ),
     floatingActionButton: GestureDetector(
-        onTap: _lockTap,
-        onLongPress: _unlockLong,
-        child: Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-                shape: BoxShape.circle, color: Colors.deepOrange),
-            alignment: Alignment.center,
-            child: Icon(isLocked ? Icons.lock : Icons.lock_open,
-                size: 32, color: Colors.white))),
+      onTap: _lockTap,
+      onLongPress: _unlockLong,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.deepOrange,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          isLocked ? Icons.lock : Icons.lock_open,
+          size: 32,
+          color: Colors.white,
+        ),
+      ),
+    ),
     floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
   );
 }

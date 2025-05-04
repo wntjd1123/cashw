@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'goal_setting_page.dart';
 import 'free_running.dart';
-
 import 'running_session_manager.dart';
 
 class RunningTab extends StatefulWidget {
@@ -12,13 +11,14 @@ class RunningTab extends StatefulWidget {
 }
 
 class _RunningTabState extends State<RunningTab> {
-  bool isUnlimited = true;
-  bool isDistance = true;
-  double distanceGoal = 0.0;
-  Duration timeGoal = Duration.zero;
+  bool isUnlimited = true;   // 무제한 vs 목표 러닝
+  bool isDistance = true;    // 거리 vs 시간 모드
+  double distanceGoal = 0.0; // 목표 거리(km)
+  Duration timeGoal = Duration.zero; // 목표 시간
 
   @override
   Widget build(BuildContext context) {
+    /* ─── 상단 배너 ─── */
     final banner = RunningSessionManager.I.hasActive
         ? Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -41,6 +41,8 @@ class _RunningTabState extends State<RunningTab> {
       children: [
         banner,
         const SizedBox(height: 16),
+
+        /* 러닝 유형 선택 (무제한 / 목표) */
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -50,6 +52,8 @@ class _RunningTabState extends State<RunningTab> {
           ],
         ),
         const SizedBox(height: 20),
+
+        /* 목표 모드 선택 (거리 / 시간) */
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -59,51 +63,32 @@ class _RunningTabState extends State<RunningTab> {
           ],
         ),
         const SizedBox(height: 32),
+
+        /* 메인 카드 */
         isUnlimited ? _unlimited() : _goal(),
         const Spacer(),
+
+        /* ─── 운동 시작 버튼 ─── */
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () async {
-                if (RunningSessionManager.I.hasActive) {
-                  final stop = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      content: const Text(
-                          '현재 진행중인 러닝기록이 있습니다.\n러닝을 그만할까요?'),
-                      actions: [
-                        TextButton(
-                            onPressed: () => Navigator.pop(_, false),
-                            child: const Text('아니오')),
-                        TextButton(
-                            onPressed: () => Navigator.pop(_, true),
-                            child: const Text('네')),
-                      ],
-                    ),
-                  ) ??
-                      false;
-                  if (!stop) return;
-                  await RunningSessionManager.I.stopRunning();
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FreeRunning(
-                      isUnlimited: isUnlimited,
-                      isDistanceMode: isDistance,
-                      distanceGoal: distanceGoal,
-                      timeGoal: timeGoal,
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => RunningSessionManager.switchTo(
+                context,
+                    (_) => FreeRunning(
+                  isUnlimited: isUnlimited,
+                  isDistanceMode: isDistance,
+                  distanceGoal: distanceGoal,
+                  timeGoal: timeGoal,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
+                backgroundColor: Colors.deepOrange,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
               child: const Text('운동 시작',
                   style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
@@ -113,7 +98,7 @@ class _RunningTabState extends State<RunningTab> {
     );
   }
 
-  /* ───── 위젯 빌더 ───── */
+  /* ───────────────── 위젯 빌더 ───────────────── */
   Widget _unlimited() => Column(
     children: [
       Text(isDistance ? '무제한 거리 러닝' : '무제한 시간 러닝',
@@ -165,8 +150,8 @@ class _RunningTabState extends State<RunningTab> {
                 indent: 80,
                 endIndent: 80),
             Text(isDistance ? 'km' : '시:분:초',
-                style: const TextStyle(
-                    fontSize: 14, color: Colors.black54)),
+                style:
+                const TextStyle(fontSize: 14, color: Colors.black54)),
           ],
         ),
       ),
@@ -177,7 +162,7 @@ class _RunningTabState extends State<RunningTab> {
     ],
   );
 
-  /* ───── 헬퍼 ───── */
+  /* ───────────────── 헬퍼 ───────────────── */
   String _fmt(Duration d) =>
       '${d.inHours.toString().padLeft(2, '0')}:${(d.inMinutes % 60).toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
