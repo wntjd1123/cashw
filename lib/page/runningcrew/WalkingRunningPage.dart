@@ -28,7 +28,7 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
   int idx = 0, remain = 0, done = 0;
   bool isPaused = false;
   bool isLocked = false;
-  bool isMap = false;
+  bool isMapMode = false;
   bool voiceGuide = false;
   double distance = 0;
   Duration elapsed = Duration.zero;
@@ -137,7 +137,7 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
   }
 
   Future<void> _finishRunning() async {
-    /*--- 추가: dispose된 후 오류 방지 ---*/
+    RunningSessionManager.I.clear();
     if (!mounted) return;
     _timer?.cancel();
     _locSub.cancel();
@@ -204,7 +204,7 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
       _minimize(); // 안드로이드 뒤로 키 대응
       return false; // Route pop 방지
     },
-    child: isMap ? _mapScreen() : _mainScreen(),
+    child: isMapMode ? _mapScreen() : _mainScreen(),
   );
 
   /*---------------- main screen ----------------*/
@@ -291,7 +291,10 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
                       ),
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () => setState(() => isPaused = !isPaused),
+                        onTap: () => setState(() {
+                          if (!isPaused) isMapMode = true;
+                          isPaused = !isPaused;
+                        }),
                         child: Container(
                           width: 80,
                           height: 80,
@@ -335,7 +338,7 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: 40),
             child: ElevatedButton.icon(
-              onPressed: () => setState(() => isMap = true),
+              onPressed: () => setState(() => isMapMode = true),
               icon: const Icon(Icons.map, color: Colors.white),
               label: const Text('지도 보기', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
@@ -477,7 +480,7 @@ class _WalkingRunningPageState extends State<WalkingRunningPage> {
           SafeArea(
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => setState(() => isMap = false),
+              onPressed: () => setState(() => isMapMode = false),
             ),
           ),
         ],

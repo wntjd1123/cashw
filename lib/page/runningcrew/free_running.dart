@@ -79,7 +79,12 @@ class _FreeRunningState extends State<FreeRunning> {
     });
   }
 
-  void _pauseRunning() => setState(() => isPaused = !isPaused);
+  void _pauseRunning() {
+    setState(() {
+      isPaused = !isPaused;
+      if (isPaused) isMapMode = true;
+    });
+  }
 
   void _startLocationUpdates() async {
     if (!await _location.serviceEnabled()) await _location.requestService();
@@ -127,11 +132,11 @@ class _FreeRunningState extends State<FreeRunning> {
   }
 
   Future<void> _finishRunning() async {
-    /* ---------------- ④: mounted 검사 최상단 ---------------- */
+    RunningSessionManager.I.clear();
     if (!mounted) return;
     _timer?.cancel();
     _locationSubscription.cancel();
-    /* ------------------------------------------------------- */
+
 
     final end = DateTime.now();
     Navigator.pushReplacement(
@@ -181,7 +186,7 @@ class _FreeRunningState extends State<FreeRunning> {
 
   void _finishTap() => _show('종료하려면 1초간 꾹 눌러주세요');
 
-  /* ---------------- ②: build 첫 줄 변경 ------------------- */
+
   @override
   Widget build(BuildContext context) => WillPopScope(
     onWillPop: () async {
@@ -190,7 +195,7 @@ class _FreeRunningState extends State<FreeRunning> {
     },
     child: isMapMode ? _map() : _main(),
   );
-  /* ------------------------------------------------------- */
+
 
   Widget _main() {
     final mainValue = widget.isUnlimited
